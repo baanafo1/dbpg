@@ -2,9 +2,10 @@ package dbpg
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
 	"fmt"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 

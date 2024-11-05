@@ -9,7 +9,6 @@ import (
 
 
 type Database struct {
-	// file string
 	Conn *sql.DB
 }
 

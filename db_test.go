@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS test (
 var dbInstance *Database
 
 type Model struct {
-	ID             int            `json:"id"`
+	ID             int           `json:"id"`
 	Name           string		 `json:"name"`
 	Geom           string		 `json:"geom"`
 	Centriod       string		 `json:"centriod"`

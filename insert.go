@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "github.com/lib/pq"
 
 	ref "github.com/intdxdt/goreflect"
 )
@@ -35,18 +34,18 @@ func Insert[T ITable[T]](conn *sql.DB, model T, insertCols []string, on On) (boo
 
 	var columns = ColumnNames(cols)
 	var holders = ColumnPlaceholders(cols)
-	fmt.Println(values)
-	for _, value := range colRefs {
-		fmt.Println(*&value)
-	}
-	fmt.Printf("columns: %v\n holders: %v\n", columns, holders)
+	// fmt.Println(values)
+	// for _, value := range colRefs {
+	// 	fmt.Println(*&value)
+	// }
+	// fmt.Printf("columns: %v\n holders: %v\n", columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
 		INSERT INTO %v(%v) 
 		VALUES (%v);`, model.TableName(), columns, holders)
 
 	if len(on.On) > 0 {
-		fmt.Println("i entered here")
+		// fmt.Println("i entered here")
 		sqlStatement = fmt.Sprintf(`
 		INSERT INTO %v(%v) 
 		VALUES (%v)
@@ -56,10 +55,9 @@ func Insert[T ITable[T]](conn *sql.DB, model T, insertCols []string, on On) (boo
 		}
 	}
 
-	fmt.Println(sqlStatement)
+	// fmt.Println(sqlStatement)
 	res, err := Exec(conn, sqlStatement, values...)
 	if err != nil {
-		fmt.Println("Error is from here", err)
 		return false, err
 	}
 	count, err := res.RowsAffected()
