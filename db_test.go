@@ -65,7 +65,7 @@ func (model *Model) Insert() (bool, error) {
 }
 
 func initDB() {
-    connStr := "host=localhost port=5433 user=postgres password=secret dbname=postgres sslmode=disable"
+    connStr := "postgres://postgres:secret@localhost:5433/demo?sslmode=disable"
     var err error
     dbInstance, err = NewDatabase(connStr)
     if err != nil {
