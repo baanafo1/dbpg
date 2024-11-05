@@ -80,6 +80,7 @@ func initDB() {
     _, err = dbInstance.Exec(UserSQLModel)
     if err != nil {
 		fmt.Printf("Error executing UserSQLModel: %v\n", err)
+		return
     }
 	// fmt.Println(&dbInstance)
 	fmt.Println("Database connection successful")
