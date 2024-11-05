@@ -1,4 +1,4 @@
-module github.com/baanafo1/dbgp
+module github.com/baanafo1/dbpg
 
 go 1.23.2
 

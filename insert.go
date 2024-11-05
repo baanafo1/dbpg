@@ -11,7 +11,6 @@ import (
 
 func Insert[T ITable[T]](conn *sql.DB, model T, insertCols []string, on On) (bool, error) {
 	var fields, err = ref.Fields(model)
-	fmt.Println("These are the fields", fields)
 	if err != nil {
 		return false, err
 	}
