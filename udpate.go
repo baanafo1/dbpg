@@ -2,9 +2,9 @@ package dbpg
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
 	"fmt"
 	ref "github.com/intdxdt/goreflect"
+	_ "github.com/lib/pq"
 )
 
 func UpdateByExclusion[T ITable[T]](conn *sql.DB, model T, excludeCols []string, wc WhereClause) (bool, error) {
@@ -35,7 +35,7 @@ func Update[T ITable[T]](conn *sql.DB, model T, updateCols []string, wc WhereCla
 		return false, err
 	}
 
-	fields, colRefs, err := ref.FilterFieldReferences(fields, model)
+	fields, _, err = ref.FilterFieldReferences(fields, model)
 	if err != nil {
 		return false, err
 	}
@@ -43,12 +43,13 @@ func Update[T ITable[T]](conn *sql.DB, model T, updateCols []string, wc WhereCla
 	var cols = make([]string, 0, len(fields))
 	var values = make([]any, 0, len(fields))
 
+	//fmt.Println(colRefs)
 	var dict = KeysToMap(updateCols, true)
 
-	for i, field := range fields {
+	for _, field := range fields {
 		if dict[field] {
 			cols = append(cols, field)
-			values = append(values, colRefs[i])
+			//values = append(values, colRefs[i])
 		}
 	}
 

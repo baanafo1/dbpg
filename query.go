@@ -2,10 +2,10 @@ package dbpg
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
 	"errors"
 	"fmt"
 	ref "github.com/intdxdt/goreflect"
+	_ "github.com/lib/pq"
 )
 
 func Query(conn *sql.DB, query string, args ...any) (*sql.Rows, error) {
@@ -101,5 +101,6 @@ func QueriesByColumnNames[T ITable[T]](conn *sql.DB, model T, fieldNames []strin
 	if rows.Err() != nil {
 		return results, rows.Err()
 	}
+
 	return results, nil
 }
