@@ -1,7 +1,9 @@
 package dbpg
 
 import (
+	"database/sql"
 	"fmt"
+	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -9,52 +11,13 @@ import (
 	"github.com/franela/goblin"
 )
 
-const UserSQLModel = `
-DROP TABLE IF EXISTS newtest;
-CREATE TABLE IF NOT EXISTS newtest (
-	id            		 INTEGER NOT NULL PRIMARY KEY,
-	name          		 TEXT DEFAULT '',
-	geom	   			 TEXT DEFAULT '',
-	centroid			 TEXT DEFAULT '',
-	number_of_floors     INTEGER DEFAULT 0,
-	email         		 TEXT NOT NULL UNIQUE,
-    has_paid        	 INTEGER DEFAULT 0
-);
-`
-
 var dbInstance *Database
-
-type Model struct {
-	ID             int    `json:"id"`
-	Name           string `json:"name"`
-	Geom           string `json:"geom"`
-	Centroid       string `json:"centroid"`
-	NumberOfFloors int    `json:"number_of_floors"`
-	Email          string `json:"email"`
-	HasPaid        int    `json:"has_paid"`
-}
-
-func NewModel() *Model {
-	return &Model{ID: -1}
-}
-
-func (model *Model) New() *Model {
-	return NewModel()
-}
-
-func (model *Model) Clone() *Model {
-	var o = *model
-	return &o
-}
-
-func (model *Model) TableName() string {
-	return "newtest"
-}
 
 func (model *Model) Insert() (bool, error) {
 	// You may want to pass all fields or just the necessary ones
+    // success, err := Insert(dbInstance.Conn, )
 	success, err := Insert(dbInstance.Conn, model, []string{
-		`id`, `email`, `name`, `geom`,
+		`rid`, `pid`, `name`, `geom`, `plot_num`,
 	}, On{})
 
 	if err != nil {
@@ -65,7 +28,7 @@ func (model *Model) Insert() (bool, error) {
 }
 
 func (model *Model) Delete() (int64, error) {
-	clause := WhereClause{Where: fmt.Sprintf("id = %v", model.ID)}
+	clause := WhereClause{Where: fmt.Sprintf("pid = %v", model.PiD)}
 	success, err := Delete(dbInstance.Conn, model, clause)
 
 	if err != nil {
@@ -75,8 +38,9 @@ func (model *Model) Delete() (int64, error) {
 }
 
 func (model *Model) QueriesByColumnNames() ([]*Model, error) {
-	fields := []string{`id`, `geom`, `email`}
-	result, err := QueriesByColumnNames(dbInstance.Conn, model, fields)
+	fields := []string{`rid`, `pid`}
+    wc := WhereClause{Where: "plot_num = $1", Arguments: []any{model.PlotNumber}}
+	result, err := QueriesByColumnNames(dbInstance.Conn, model, fields, wc)
 	if err != nil {
 		fmt.Printf("Error querying model by column names: %v\n", err)
 	}
@@ -84,10 +48,10 @@ func (model *Model) QueriesByColumnNames() ([]*Model, error) {
 }
 
 func (model *Model) Update() (bool, error) {
-	field := []string{`name`, `geom`, `number_of_floors`}
+	field := []string{`use`, `state`}
 	whereClause := WhereClause{
-		Where:     fmt.Sprintf("email = '%v'", model.Email),
-		Arguments: []any{"plot1", "geometry absent", 5},
+		Where:     fmt.Sprintf("plot_num = %d", model.PlotNumber),
+		Arguments: []any{model.Use, model.State},
 	}
 	res, err := Update(dbInstance.Conn, model, field, whereClause)
 
@@ -98,10 +62,10 @@ func (model *Model) Update() (bool, error) {
 }
 
 func (model *Model) UpdateByExclusion() (bool, error) {
-	excludedFields := []string{`id`, `name`, `centroid`, `number_of_floors`, `email`, `has_paid`}
+	excludedFields := []string{`rid`, `name`, `pid`, `geom`, `use`, `plot_num`, `use_type`}
 	whereClause := WhereClause{
-		Where:     fmt.Sprintf("number_of_floors = %v", model.NumberOfFloors),
-		Arguments: []any{"updated by exclusion"},
+		Where:     fmt.Sprintf("pid = %v", model.PiD),
+		Arguments: []any{model.State, model.Remarks},
 	}
 	res, err := UpdateByExclusion(dbInstance.Conn, model, excludedFields, whereClause)
 	if err != nil {
@@ -111,7 +75,8 @@ func (model *Model) UpdateByExclusion() (bool, error) {
 }
 
 func initDB() {
-	connStr := "postgres://postgres:secret@localhost:5433/demo?sslmode=disable"
+
+	connStr := os.Getenv("GREENLIGHT_DB_DSN")
 	var err error
 	dbInstance, err = NewDatabase(connStr)
 	if err != nil {
@@ -123,11 +88,11 @@ func initDB() {
 		return
 	}
 
-	//_, err = dbInstance.Exec(UserSQLModel)
-	//if err != nil {
-	//	fmt.Printf("Error executing UserSQLModel: %v\n", err)
-	//	return
-	//}
+	// _, err = dbInstance.Exec(BuildingSQLModel)
+	// if err != nil {
+	// 	fmt.Printf("Error executing UserSQLModel: %v\n", err)
+	// 	return
+	// }
 	fmt.Println("Database connection successful")
 }
 
@@ -140,68 +105,75 @@ func deInitDB() {
 func TestDBPG(t *testing.T) {
 	g := goblin.Goblin(t)
 
+    geom := "POLYGON((-73.9775 40.7694, -73.9681 40.7694, -73.9681 40.7831, -73.9775 40.7831, -73.9775 40.7694))"
 	initDB()
 	defer deInitDB()
 	var m = NewModel()
 
-	// INSERT TEST
-	//g.Describe("Tests Model Insert", func() {
-	//	g.It("user insert", func() {
-	//		m.ID = 2
-	//		m.Email = "secondUser@db.com"
-	//		m.Name = "plot2"
-	//		m.Geom = "geom missing"
-	//		bln, err := m.Insert()
-	//		g.Assert(bln).IsTrue()
-	//		g.Assert(err).IsNil()
-	//	})
-	//})
-	//
-	//// MODEL DELETE TEST
-	//g.Describe("Test Model Delete", func() {
-	//	g.It("user delete", func() {
-	//		m.ID = 1
-	//		intg, err := m.Delete()
-	//		g.Assert(intg).Equal(int64(1))
-	//		g.Assert(err).IsNil()
-	//	})
-	//})
-	//
-	//// TEST QUERY BY COLUMN NAMES
-	//g.Describe("Test QueryByColumnNames", func() {
-	//	g.It("query column names", func() {
-	//		res, err := m.QueriesByColumnNames()
-	//
-	//		if len(res) > 0 {
-	//			expected := []string{"1", "geom"}
-	//			actual := []string{
-	//				fmt.Sprintf("%v", res[0].ID),
-	//				res[0].Geom,
-	//			}
-	//			g.Assert(actual).Equal(expected)
-	//		} else {
-	//			t.Error("Expected at least one result in res")
-	//		}
-	//
-	//		g.Assert(err).IsNil()
-	//	})
-	//})
-	//
-	//// TEST UPDATE
-	//g.Describe("Test Update", func() {
-	//	g.It("update columns", func() {
-	//		m.Email = "firstUser@db.com"
-	//		res, err := m.Update()
-	//		g.Assert(err).IsNil()
-	//
-	//		g.Assert(res).IsTrue()
-	//	})
-	//})
+	//INSERT TEST
+	g.Describe("Tests Model Insert", func() {
+		g.It("user insert", func() {
+			m.RiD   = 3
+			m.PiD = 4
+			m.Name = "Washey Hostel"
+			m.PlotNumber = 321
+            m.Geom = sql.NullString{String: geom, Valid: true}
+			bln, err := m.Insert()
+			g.Assert(bln).IsTrue()
+			g.Assert(err).IsNil()
+		})
+	})
+
+	// MODEL DELETE TEST
+	g.Describe("Test Model Delete", func() {
+		g.It("user delete", func() {
+			m.PiD = 2
+			intg, err := m.Delete()
+			g.Assert(intg).Equal(int64(1))
+			g.Assert(err).IsNil()
+		})
+	})
+
+	// TEST QUERY BY COLUMN NAMES
+	g.Describe("Test QueryByColumnNames", func() {
+		g.It("query column names", func() {
+            m.PlotNumber = 125
+			res, err := m.QueriesByColumnNames()
+
+			if len(res) > 0 {
+				expected := []int{2, 3}
+				actual := []int{
+					res[0].RiD,
+					res[0].PiD,
+				}
+				g.Assert(actual).Equal(expected)
+			} else {
+				t.Error("Expected at least one result in res")
+			}
+
+			g.Assert(err).IsNil()
+		})
+	})
+
+	// TEST UPDATE
+	g.Describe("Test Update", func() {
+		g.It("update columns", func() {
+            m.PlotNumber = 321
+            m.Use = "Residential"
+            m.State = "Completed"
+			res, err := m.Update()
+			g.Assert(err).IsNil()
+
+			g.Assert(res).IsTrue()
+		})
+	})
 
 	// TEST UPDATE BY EXCLUSION
 	g.Describe("Test UpdateByExclusion", func() {
 		g.It("update by exclusion", func() {
-			m.NumberOfFloors = 5
+			m.PiD = 4
+            m.State = "Uncompleted"
+            m.Remarks = "New construction"
 			res, err := m.UpdateByExclusion()
 			g.Assert(err).IsNil()
 			g.Assert(res).IsTrue()

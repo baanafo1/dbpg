@@ -49,7 +49,7 @@ func Update[T ITable[T]](conn *sql.DB, model T, updateCols []string, wc WhereCla
 	for _, field := range fields {
 		if dict[field] {
 			cols = append(cols, field)
-			//values = append(values, colRefs[i])
+			// values = append(values, colRefs[i])
 		}
 	}
 
@@ -62,9 +62,10 @@ func Update[T ITable[T]](conn *sql.DB, model T, updateCols []string, wc WhereCla
 		`UPDATE %v SET %v WHERE %v;`,
 		model.TableName(), holders, wc.Where)
 
-	res, err := Exec(conn, query, values...)
-
+		res, err := Exec(conn, query, values...)
+		
 	if err != nil {
+		fmt.Println(query)
 		return false, err
 	}
 
